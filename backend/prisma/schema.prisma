@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionCategory {
+  REVENUE
+  SOFTWARE_SAAS
+  MARKETING
+  LEGAL_ADMIN
+  HARDWARE
+  TAX
+  MISCELLANEOUS
+}
+
+enum IngestionSource {
+  WEBHOOK
+  UPLOAD
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model RawPayload {
+  id        String          @id @default(cuid())
+  source    IngestionSource
+  content   Json
+  fileName  String?
+  filePath  String?
+  status    JobStatus       @default(PENDING)
+  jobId     String?
+  error     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  transaction Transaction?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Transaction {
+  id              String              @id @default(cuid())
+  rawPayloadId    String              @unique
+  rawPayload      RawPayload          @relation(fields: [rawPayloadId], references: [id], onDelete: Cascade)
+
+  transactionDate DateTime
+  amount          Decimal             @db.Decimal(12, 2)
+  currency        String              @default("USD")
+  merchant        String
+  category        TransactionCategory
+  categoryReason  String
+  isAnomaly       Boolean             @default(false)
+  anomalyReason   String?
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([transactionDate])
+  @@index([merchant])
+  @@index([category])
+  @@index([isAnomaly])
+}
+
+model MerchantAverage {
+  id          String  @id @default(cuid())
+  merchant    String  @unique
+  avgAmount   Decimal @db.Decimal(12, 2)
+  transactionCount Int @default(0)
+
+  @@index([merchant])
+}
