@@ -31,7 +31,7 @@ LedgerPulse/
 ### Prerequisites
 - Node.js 20+
 - Docker (for PostgreSQL + Redis)
-- OpenAI API key
+- Google Gemini API key
 
 ### 1. Start Infrastructure
 ```bash
@@ -41,7 +41,7 @@ docker-compose up -d
 ### 2. Backend Setup
 ```bash
 cd backend
-cp .env.example .env          # Fill in your OPENAI_API_KEY
+cp .env.example .env          # Fill in your GEMINI_API_KEY
 npm install
 npx prisma generate
 npx prisma db push
@@ -85,7 +85,7 @@ curl -X POST http://localhost:3001/api/v1/ingest/webhook \
 
 ## Tech Stack
 
-- **Backend**: Fastify, Prisma, BullMQ, OpenAI
+- **Backend**: Fastify, Prisma, BullMQ, Google Gemini
 - **Frontend**: React, Vite, Tailwind CSS, Recharts
 - **Database**: PostgreSQL
 - **Queue**: Redis + BullMQ

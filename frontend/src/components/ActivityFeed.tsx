@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "./Card";
 import { Badge } from "./Badge";
 import type { Transaction } from "@/types";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Activity } from "lucide-react";
 
 interface ActivityFeedProps {
   transactions: Transaction[];
@@ -18,13 +18,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  REVENUE: "bg-emerald-100 text-emerald-800",
-  SOFTWARE_SAAS: "bg-indigo-100 text-indigo-800",
-  MARKETING: "bg-amber-100 text-amber-800",
-  LEGAL_ADMIN: "bg-violet-100 text-violet-800",
-  HARDWARE: "bg-teal-100 text-teal-800",
-  TAX: "bg-red-100 text-red-800",
-  MISCELLANEOUS: "bg-gray-100 text-gray-800",
+  REVENUE: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  SOFTWARE_SAAS: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  MARKETING: "bg-amber-50 text-amber-700 border-amber-200",
+  LEGAL_ADMIN: "bg-violet-50 text-violet-700 border-violet-200",
+  HARDWARE: "bg-teal-50 text-teal-700 border-teal-200",
+  TAX: "bg-red-50 text-red-700 border-red-200",
+  MISCELLANEOUS: "bg-gray-50 text-gray-700 border-gray-200",
 };
 
 function formatCurrency(value: number): string {
@@ -54,10 +54,17 @@ export function ActivityFeed({ transactions }: ActivityFeedProps) {
           <CardTitle className="text-base">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No transactions yet. Upload a receipt or send a webhook to get
-            started.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="p-3 rounded-full bg-muted mb-3">
+              <Activity className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              No transactions yet
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+              Upload a receipt or use Quick Entry to get started
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -66,14 +73,20 @@ export function ActivityFeed({ transactions }: ActivityFeedProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Recent Activity</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">Recent Activity</CardTitle>
+          <Badge variant="secondary" className="text-[10px]">
+            {transactions.length} transactions
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3 max-h-[400px] overflow-y-auto">
-          {transactions.map((tx) => (
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+          {transactions.map((tx, index) => (
             <div
               key={tx.id}
-              className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+              className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-background hover:bg-muted/30 transition-all duration-200 animate-slide-up"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -81,7 +94,7 @@ export function ActivityFeed({ transactions }: ActivityFeedProps) {
                     {tx.merchant}
                   </span>
                   {tx.isAnomaly && (
-                    <Badge variant="destructive" className="gap-1">
+                    <Badge variant="destructive" className="gap-1 text-[10px]">
                       <AlertTriangle className="h-3 w-3" />
                       Anomaly
                     </Badge>
@@ -92,12 +105,12 @@ export function ActivityFeed({ transactions }: ActivityFeedProps) {
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Badge
-                    variant="secondary"
-                    className={CATEGORY_COLORS[tx.category]}
+                    variant="outline"
+                    className={`text-[10px] ${CATEGORY_COLORS[tx.category]}`}
                   >
                     {CATEGORY_LABELS[tx.category] || tx.category}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground">
                     {timeAgo(tx.createdAt)}
                   </span>
                 </div>
@@ -106,14 +119,14 @@ export function ActivityFeed({ transactions }: ActivityFeedProps) {
                 <span
                   className={
                     tx.category === "REVENUE"
-                      ? "text-emerald-600 font-semibold"
+                      ? "text-success font-semibold"
                       : "text-foreground font-semibold"
                   }
                 >
                   {tx.category === "REVENUE" ? "+" : "-"}
                   {formatCurrency(tx.amount)}
                 </span>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground mt-0.5">
                   {new Date(tx.transactionDate).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",

@@ -62,6 +62,26 @@ export async function uploadFile(
   return res.json();
 }
 
+export async function sendWebhook(
+  payload: Record<string, unknown>
+): Promise<{ accepted: boolean; payloadId: string; jobId: string }> {
+  const res = await fetch("/api/v1/ingest/webhook", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_WEBHOOK_SECRET || "whsec_your_secret_here"}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(error.message || error.error || "Webhook failed");
+  }
+
+  return res.json();
+}
+
 export function connectSSE(
   onEvent: (event: import("../types").SSEEvent) => void
 ): EventSource {

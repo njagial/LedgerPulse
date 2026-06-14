@@ -29,36 +29,45 @@ function MetricCard({
   icon: Icon,
   trend,
   trendLabel,
+  accent,
 }: {
   title: string;
   value: string;
   icon: React.ElementType;
   trend?: "up" | "down" | "neutral";
   trendLabel?: string;
+  accent?: string;
 }) {
   return (
-    <Card>
+    <Card className="card-hover overflow-hidden relative">
+      {accent && (
+        <div className={cn("absolute top-0 left-0 right-0 h-1", accent)} />
+      )}
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <div className="p-2 rounded-lg bg-muted/50">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold tracking-tight">{value}</div>
         {trendLabel && (
-          <p
-            className={cn(
-              "text-xs mt-1",
-              trend === "up" && "text-emerald-600",
-              trend === "down" && "text-red-600",
-              trend === "neutral" && "text-muted-foreground"
-            )}
-          >
-            {trend === "up" && "↑ "}
-            {trend === "down" && "↓ "}
-            {trendLabel}
-          </p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                trend === "up" && "bg-success/10 text-success",
+                trend === "down" && "bg-destructive/10 text-destructive",
+                trend === "neutral" && "bg-muted text-muted-foreground"
+              )}
+            >
+              {trend === "up" && "↑ "}
+              {trend === "down" && "↓ "}
+              {trendLabel}
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -72,13 +81,14 @@ export function MetricCards({
   runway,
 }: MetricCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-fade-in">
       <MetricCard
         title="Current Balance"
         value={formatCurrency(currentBalance)}
         icon={DollarSign}
         trend={currentBalance >= 0 ? "up" : "down"}
         trendLabel={currentBalance >= 0 ? "Positive" : "Negative"}
+        accent="bg-gradient-to-r from-primary to-primary/60"
       />
       <MetricCard
         title="Monthly Revenue"
@@ -86,6 +96,7 @@ export function MetricCards({
         icon={TrendingUp}
         trend="up"
         trendLabel="Last 30 days"
+        accent="bg-gradient-to-r from-success to-success/60"
       />
       <MetricCard
         title="Monthly Burn Rate"
@@ -93,6 +104,7 @@ export function MetricCards({
         icon={TrendingDown}
         trend="down"
         trendLabel="Last 30 days"
+        accent="bg-gradient-to-r from-destructive to-destructive/60"
       />
       <MetricCard
         title="Runway"
@@ -108,6 +120,12 @@ export function MetricCards({
                 ? "Caution"
                 : "Critical"
         }
+        accent={cn(
+          runway >= 999 && "bg-gradient-to-r from-success to-success/60",
+          runway > 60 && runway < 999 && "bg-gradient-to-r from-primary to-primary/60",
+          runway > 30 && runway <= 60 && "bg-gradient-to-r from-warning to-warning/60",
+          runway <= 30 && "bg-gradient-to-r from-destructive to-destructive/60"
+        )}
       />
     </div>
   );

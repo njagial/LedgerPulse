@@ -3,7 +3,7 @@ import { MetricCards } from "./components/MetricCards";
 import { CashflowChart } from "./components/CashflowChart";
 import { CategoryChart } from "./components/CategoryChart";
 import { ActivityFeed } from "./components/ActivityFeed";
-import { UploadZone } from "./components/UploadZone";
+import { InputSection } from "./components/InputSection";
 import { fetchCashflow, fetchCategories, connectSSE } from "./lib/api";
 import type {
   CashflowData,
@@ -11,7 +11,7 @@ import type {
   Transaction,
   SSEEvent,
 } from "./types";
-import { Wallet, RefreshCw } from "lucide-react";
+import { Wallet, RefreshCw, Zap } from "lucide-react";
 
 export default function App() {
   const [cashflow, setCashflow] = useState<CashflowData | null>(null);
@@ -55,12 +55,20 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Loading LedgerPulse...
-          </p>
+      <div className="min-h-screen flex items-center justify-center gradient-mesh">
+        <div className="text-center space-y-4 animate-fade-in">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            <div className="relative p-4 rounded-full bg-primary/10">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Loading LedgerPulse</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Setting up your financial dashboard...
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -74,20 +82,37 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+    <div className="min-h-screen gradient-mesh">
+      <header className="sticky top-0 z-50 glass border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Wallet className="h-6 w-6" />
-            <h1 className="text-lg font-semibold tracking-tight">
-              LedgerPulse
-            </h1>
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-lg blur-md" />
+              <div className="relative p-2 rounded-lg gradient-primary">
+                <Wallet className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">
+                LedgerPulse
+              </h1>
+              <p className="text-[10px] text-muted-foreground -mt-0.5">
+                Financial Intelligence
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-muted-foreground">
-              Last updated: {lastUpdate.toLocaleTimeString()}
-            </span>
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Real-time
+              </span>
+              <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Last updated</p>
+              <p className="text-xs font-medium">{lastUpdate.toLocaleTimeString()}</p>
+            </div>
           </div>
         </div>
       </header>
@@ -113,29 +138,41 @@ export default function App() {
         </div>
 
         {cashflow?.warnings && cashflow.warnings.length > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <h3 className="text-sm font-semibold text-amber-800 mb-2">
-              Cashflow Warnings
-            </h3>
-            <div className="space-y-1">
-              {cashflow.warnings.slice(0, 5).map((w) => (
-                <p key={w.date} className="text-xs text-amber-700">
-                  Projected balance drops to{" "}
-                  <strong>${w.balance.toLocaleString()}</strong> on{" "}
-                  {new Date(w.date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              ))}
+          <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-warning/10">
+                <svg className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-warning">
+                  Cashflow Warnings
+                </h3>
+                <div className="mt-2 space-y-1.5">
+                  {cashflow.warnings.slice(0, 3).map((w) => (
+                    <p key={w.date} className="text-xs text-muted-foreground">
+                      Projected balance drops to{" "}
+                      <strong className="text-foreground">
+                        ${w.balance.toLocaleString()}
+                      </strong>{" "}
+                      on{" "}
+                      {new Date(w.date).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ActivityFeed transactions={transactions} />
-          <UploadZone />
+          <InputSection />
         </div>
       </main>
     </div>

@@ -15,7 +15,12 @@ export async function ingestRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    const body = webhookSchema.parse(request.body);
+    let body: Record<string, unknown>;
+    try {
+      body = webhookSchema.parse(request.body);
+    } catch (e: any) {
+      return reply.code(400).send({ error: "Validation Error", message: e.message });
+    }
     const prisma = getPrisma();
 
     const rawPayload = await prisma.rawPayload.create({

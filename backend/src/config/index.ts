@@ -6,7 +6,7 @@ const configSchema = z.object({
   host: z.string().default("0.0.0.0"),
   databaseUrl: z.string(),
   redisUrl: z.string().default("redis://localhost:6379"),
-  openaiApiKey: z.string(),
+  geminiApiKey: z.string(),
   webhookSecret: z.string(),
   uploadDir: z.string().default("./uploads"),
 });
@@ -22,7 +22,7 @@ export function loadConfig(): Config {
     host: process.env.HOST,
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL,
-    openaiApiKey: process.env.OPENAI_API_KEY,
+    geminiApiKey: process.env.GEMINI_API_KEY,
     webhookSecret: process.env.WEBHOOK_SECRET,
     uploadDir: process.env.UPLOAD_DIR,
   });

@@ -1,14 +1,14 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { loadConfig } from "../config/index.js";
 
-let client: OpenAI | null = null;
+let genAI: GoogleGenerativeAI | null = null;
 
-export function getOpenAI(): OpenAI {
-  if (!client) {
+function getGenAI(): GoogleGenerativeAI {
+  if (!genAI) {
     const config = loadConfig();
-    client = new OpenAI({ apiKey: config.openaiApiKey });
+    genAI = new GoogleGenerativeAI(config.geminiApiKey);
   }
-  return client;
+  return genAI;
 }
 
 export interface ParsedTransaction {
@@ -56,55 +56,99 @@ Rules:
 - Be precise with amounts - include cents if present
 - The categoryReason must be a concise 1-sentence explanation`;
 
-export async function parseTransactionWithLLM(
-  rawText: string
-): Promise<ParsedTransaction> {
-  const openai = getOpenAI();
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `Parse this transaction data into structured JSON:\n\n${rawText}`,
-      },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0,
-    max_tokens: 500,
+function parseRetryDelay(error: unknown): number {
+  const err = error as { status?: number; errorDetails?: Array<{ retryDelay?: string }> };
+  if (err.status === 429 && err.errorDetails) {
+    const retryInfo = err.errorDetails.find((d) => d.retryDelay);
+    if (retryInfo?.retryDelay) {
+      const seconds = parseFloat(retryInfo.retryDelay.replace("s", ""));
+      if (!isNaN(seconds)) {
+        return seconds * 1000;
+      }
+    }
+  }
+  return 10000;
+}
+
+export async function parseTransactionWithLLM(
+  rawText: string,
+  maxRetries = 3
+): Promise<ParsedTransaction> {
+  const genAI = getGenAI();
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 500,
+      responseMimeType: "application/json",
+    },
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("LLM returned empty response");
+  const prompt = `${SYSTEM_PROMPT}\n\nParse this transaction data into structured JSON:\n\n${rawText}`;
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[LLM] Retry attempt ${attempt}/${maxRetries}`);
+      }
+
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const content = response.text();
+
+      if (!content) {
+        throw new Error("LLM returned empty response");
+      }
+
+      const parsed = JSON.parse(content) as ParsedTransaction;
+
+      if (
+        !parsed.transactionDate ||
+        parsed.amount === undefined ||
+        !parsed.merchant ||
+        !parsed.category
+      ) {
+        throw new Error(`LLM returned incomplete data: ${content}`);
+      }
+
+      const validCategories = [
+        "REVENUE",
+        "SOFTWARE_SAAS",
+        "MARKETING",
+        "LEGAL_ADMIN",
+        "HARDWARE",
+        "TAX",
+        "MISCELLANEOUS",
+      ];
+      if (!validCategories.includes(parsed.category)) {
+        parsed.category = "MISCELLANEOUS";
+      }
+
+      return parsed;
+    } catch (error) {
+      lastError = error;
+
+      const err = error as { status?: number };
+      if (err.status === 429 && attempt < maxRetries) {
+        const delay = parseRetryDelay(error);
+        console.warn(
+          `[LLM] Rate limited. Retrying in ${Math.ceil(delay / 1000)}s...`
+        );
+        await sleep(delay);
+        continue;
+      }
+
+      throw error;
+    }
   }
 
-  const parsed = JSON.parse(content) as ParsedTransaction;
-
-  if (
-    !parsed.transactionDate ||
-    parsed.amount === undefined ||
-    !parsed.merchant ||
-    !parsed.category
-  ) {
-    throw new Error(`LLM returned incomplete data: ${content}`);
-  }
-
-  const validCategories = [
-    "REVENUE",
-    "SOFTWARE_SAAS",
-    "MARKETING",
-    "LEGAL_ADMIN",
-    "HARDWARE",
-    "TAX",
-    "MISCELLANEOUS",
-  ];
-  if (!validCategories.includes(parsed.category)) {
-    parsed.category = "MISCELLANEOUS";
-  }
-
-  return parsed;
+  throw lastError;
 }
 
 export function mockOCRTextExtraction(_filePath: string): string {

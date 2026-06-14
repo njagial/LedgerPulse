@@ -10,7 +10,14 @@ const querySchema = z.object({
 
 export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get("/api/v1/analytics/cashflow", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { days, forecastDays } = querySchema.parse(request.query);
+    let days: number, forecastDays: number;
+    try {
+      const parsed = querySchema.parse(request.query);
+      days = parsed.days;
+      forecastDays = parsed.forecastDays;
+    } catch (e: any) {
+      return reply.code(400).send({ error: "Validation Error", message: e.message });
+    }
     const prisma = getPrisma();
 
     const now = new Date();

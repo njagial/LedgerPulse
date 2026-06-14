@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import { getPrisma } from "../lib/prisma.js";
 import { getRedisConnection } from "../lib/queue.js";
 import { parseTransactionWithLLM, mockOCRTextExtraction } from "../lib/llm.js";
-import { broadcastSSE } from "../lib/sse.js";
+import { publishSSE, initPublisher } from "../lib/sse.js";
 import type { TransactionJobData } from "../types/index.js";
 
 function createWorker(): Worker {
@@ -21,7 +21,7 @@ function createWorker(): Worker {
         data: { status: "PROCESSING" },
       });
 
-      broadcastSSE("job:started", { rawPayloadId, jobId: job.id });
+      await publishSSE("job:started", { rawPayloadId, jobId: job.id });
 
       try {
         let textToParse: string;
@@ -70,7 +70,7 @@ function createWorker(): Worker {
           data: { status: "COMPLETED" },
         });
 
-        broadcastSSE("transaction:created", {
+        await publishSSE("transaction:created", {
           id: transaction.id,
           merchant: transaction.merchant,
           amount: Number(transaction.amount),
@@ -94,7 +94,7 @@ function createWorker(): Worker {
           data: { status: "FAILED", error: errorMessage },
         });
 
-        broadcastSSE("job:failed", {
+        await publishSSE("job:failed", {
           rawPayloadId,
           error: errorMessage,
         });
@@ -105,10 +105,10 @@ function createWorker(): Worker {
     },
     {
       connection,
-      concurrency: 5,
+      concurrency: 1,
       limiter: {
-        max: 10,
-        duration: 1000,
+        max: 1,
+        duration: 60000,
       },
     }
   );
@@ -160,6 +160,8 @@ function formatPayloadForLLM(content: Record<string, unknown>): string {
 }
 
 const worker = createWorker();
+
+initPublisher();
 
 worker.on("ready", () => {
   console.log("[Worker] Transaction processing worker is ready");
